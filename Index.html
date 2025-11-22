@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Corretor Mobile - SECAA</title>
+    <script src="https://docs.opencv.org/4.8.0/opencv.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 15px;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .alert h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .alert ul {
+            margin-left: 20px;
+        }
+
+        .alert li {
+            margin: 5px 0;
+            color: #856404;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #495057;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px; /* Evita zoom no iOS */
+        }
+
+        .controls-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .controls-section h3 {
+            margin-bottom: 10px;
+            color: #495057;
+            font-size: 1.1em;
+        }
+
+        .slider-group {
+            margin: 12px 0;
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .slider-value {
+            background: #667eea;
+            color: white;
+            padding: 3px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #e9ecef;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px 0;
+            transition: transform 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            margin: 15px 0;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #videoElement {
+            width: 100%;
+            display: block;
+        }
+
+        #canvasElement {
+            display: none;
+        }
+
+        #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .status {
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            font-size: 0.95em;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .results {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .score-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .score-card h2 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .score-card p {
+            font-size: 1em;
+        }
+
+        .question-results {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .question-results h3 {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .question-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 6px 0;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #ccc;
+            font-size: 0.9em;
+        }
+
+        .question-item.correct {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .question-item.incorrect {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .question-item.not-detected {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .question-info {
+            flex: 1;
+        }
+
+        .question-status {
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        .question-status.correct {
+            background: #28a745;
+            color: white;
+        }
+
+        .question-status.incorrect {
+            background: #dc3545;
+            color: white;
+        }
+
+        .question-status.not-detected {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .camera-error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .camera-error h3 {
+            color: #721c24;
+            margin-bottom: 10px;
+        }
+
+        .camera-error ol {
+            margin-left: 20px;
+            color: #721c24;
+        }
+
+        .camera-error li {
+            margin: 8px 0;
+        }
+
+        .developer-info {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Corretor Mobile</h1>
+            <p>SECAA - Detecção Real</p>
+            <div class="developer-info">
+                <p><strong>Danilo de Moura</strong> - Engenheiro Computacional</p>
+                <p>CETI - Padre José de Anchieta Cortez</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="cameraError" class="camera-error">
+                <h3>❌ Permissão de Câmera Negada</h3>
+                <p><strong>Para resolver:</strong></p>
+                <ol>
+                    <li>Vá em <strong>Configurações</strong> do celular</li>
+                    <li>Procure por <strong>Apps</strong> ou <strong>Aplicativos</strong></li>
+                    <li>Encontre seu <strong>Navegador</strong> (Chrome/Safari)</li>
+                    <li>Toque em <strong>Permissões</strong></li>
+                    <li>Ative <strong>Câmera</strong></li>
+                    <li>Volte e recarregue esta página</li>
+                </ol>
+            </div>
+
+            <div class="alert">
+                <h3>📱 Dicas para Celular:</h3>
+                <ul>
+                    <li>Use boa iluminação natural</li>
+                    <li>Segure o celular firme</li>
+                    <li>Folha deve ocupar toda a tela</li>
+                    <li>Evite sombras e reflexos</li>
+                </ul>
+            </div>
+
+            <div class="form-group">
+                <label>📝 Questões:</label>
+                <input type="number" id="numQuestoes" min="1" max="50" value="10">
+            </div>
+
+            <div class="form-group">
+                <label>🔑 Gabarito:</label>
+                <input type="text" id="gabarito" placeholder="A,B,C,D,A,B,C,D,A,B">
+            </div>
+
+            <div class="controls-section">
+                <h3>🎛️ Ajustes</h3>
+                
+                <div class="slider-group">
+                    <label>
+                        <span>Sensibilidade</span>
+                        <span class="slider-value" id="thresholdValue">180</span>
+                    </label>
+                    <input type="range" id="threshold" min="100" max="220" value="180" step="5">
+                </div>
+
+                <div class="slider-group">
+                    <label>
+                        <span>Círculo Mín</span>
+                        <span class="slider-value" id="minRadiusValue">10</span>
+                    </label>
+                    <input type="range" id="minRadius" min="5" max="30" value="10" step="1">
+                </div>
+
+                <div class="slider-group">
+                    <label>
+                        <span>Círculo Máx</span>
+                        <span class="slider-value" id="maxRadiusValue">50</span>
+                    </label>
+                    <input type="range" id="maxRadius" min="20" max="80" value="50" step="5">
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="iniciarCamera()">📷 Iniciar Câmera</button>
+            <button class="btn btn-danger" onclick="pararCamera()">⏹️ Parar</button>
+            <button class="btn btn-primary" onclick="detectarRespostas()">🔍 Detectar</button>
+
+            <div id="status" class="status"></div>
+
+            <div class="video-container">
+                <video id="videoElement" autoplay playsinline></video>
+                <canvas id="canvasElement"></canvas>
+                <canvas id="overlayCanvas"></canvas>
+            </div>
+
+            <div id="results" class="results">
+                <div class="score-card" id="scoreCard"></div>
+                <div class="question-results" id="questionResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stream = null;
+        let video, canvas, overlayCanvas;
+
+        window.onload = function() {
+            video = document.getElementById('videoElement');
+            canvas = document.getElementById('canvasElement');
+            overlayCanvas = document.getElementById('overlayCanvas');
+
+            document.getElementById('threshold').addEventListener('input', function() {
+                document.getElementById('thresholdValue').textContent = this.value;
+            });
+            document.getElementById('minRadius').addEventListener('input', function() {
+                document.getElementById('minRadiusValue').textContent = this.value;
+            });
+            document.getElementById('maxRadius').addEventListener('input', function() {
+                document.getElementById('maxRadiusValue').textContent = this.value;
+            });
+        };
+
+        async function iniciarCamera() {
+            try {
+                // Configuração específica para mobile
+                const constraints = {
+                    video: {
+                        facingMode: 'environment', // Câmera traseira
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                video.addEventListener('loadedmetadata', () => {
+                    overlayCanvas.width = video.videoWidth;
+                    overlayCanvas.height = video.videoHeight;
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                });
+                
+                document.getElementById('cameraError').style.display = 'none';
+                mostrarStatus('✅ Câmera iniciada!', 'success');
+            } catch (error) {
+                console.error('Erro câmera:', error);
+                document.getElementById('cameraError').style.display = 'block';
+                mostrarStatus('❌ Erro ao acessar câmera', 'error');
+            }
+        }
+
+        function pararCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                stream = null;
+                mostrarStatus('⏹️ Câmera parada', 'info');
+            }
+        }
+
+        async function detectarRespostas() {
+            if (!stream) {
+                mostrarStatus('❌ Inicie a câmera primeiro!', 'error');
+                return;
+            }
+
+            const numQuestoes = parseInt(document.getElementById('numQuestoes').value);
+            const gabaritoStr = document.getElementById('gabarito').value.toUpperCase();
+            const gabarito = gabaritoStr.split(',').map(s => s.trim());
+            
+            const threshold = parseInt(document.getElementById('threshold').value);
+            const minRadius = parseInt(document.getElementById('minRadius').value);
+            const maxRadius = parseInt(document.getElementById('maxRadius').value);
+
+            if (gabarito.length !== numQuestoes) {
+                mostrarStatus(`❌ Gabarito deve ter ${numQuestoes} respostas!`, 'error');
+                return;
+            }
+
+            mostrarStatus('🔍 Processando...', 'info');
+
+            try {
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const src = cv.imread(canvas);
+                const gray = new cv.Mat();
+                const blurred = new cv.Mat();
+
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+
+                const circles = new cv.Mat();
+                cv.HoughCircles(blurred, circles, cv.HOUGH_GRADIENT, 1, 20, 50, 30, minRadius, maxRadius);
+
+                if (circles.cols === 0) {
+                    throw new Error('Nenhum círculo detectado!');
+                }
+
+                const respostasDetectadas = detectarMarcacoes(circles, gray, numQuestoes, threshold);
+                const resultado = compararComGabarito(respostasDetectadas, gabarito);
+                exibirResultados(resultado);
+                desenharOverlay(circles, respostasDetectadas);
+
+                src.delete();
+                gray.delete();
+                blurred.delete();
+                circles.delete();
+
+                const naoDetectadas = respostasDetectadas.filter(r => r === '?').length;
+                if (naoDetectadas > 0) {
+                    mostrarStatus(`⚠️ ${naoDetectadas} não detectadas`, 'warning');
+                } else {
+                    mostrarStatus('✅ Sucesso!', 'success');
+                }
+
+            } catch (error) {
+                mostrarStatus('❌ ' + error.message, 'error');
+            }
+        }
+
+        function detectarMarcacoes(circles, grayMat, numQuestoes, threshold) {
+            const respostas = [];
+            const alternativas = ['A', 'B', 'C', 'D'];
+            
+            const circlesData = [];
+            for (let i = 0; i < circles.cols; i++) {
+                const x = circles.data32F[i * 3];
+                const y = circles.data32F[i * 3 + 1];
+                const r = circles.data32F[i * 3 + 2];
+                const intensity = calcularIntensidade(grayMat, x, y, r);
+                circlesData.push({ x, y, r, intensity });
+            }
+            
+            circlesData.sort((a, b) => {
+                const yDiff = a.y - b.y;
+                if (Math.abs(yDiff) > 30) return yDiff;
+                return a.x - b.x;
+            });
+            
+            const linhas = [];
+            let linhaAtual = [];
+            let yAnterior = -1;
+            
+            circlesData.forEach(circle => {
+                if (yAnterior === -1 || Math.abs(circle.y - yAnterior) < 30) {
+                    linhaAtual.push(circle);
+                } else {
+                    if (linhaAtual.length > 0) linhas.push([...linhaAtual]);
+                    linhaAtual = [circle];
+                }
+                yAnterior = circle.y;
+            });
+            if (linhaAtual.length > 0) linhas.push(linhaAtual);
+            
+            for (let i = 0; i < Math.min(numQuestoes, linhas.length); i++) {
+                const linha = linhas[i];
+                let menorIntensidade = 255;
+                let indiceMarcado = -1;
+                
+                linha.forEach((circle, index) => {
+                    if (circle.intensity < menorIntensidade && circle.intensity < threshold) {
+                        menorIntensidade = circle.intensity;
+                        indiceMarcado = index;
+                    }
+                });
+                
+                if (indiceMarcado >= 0 && indiceMarcado < 4) {
+                    respostas.push(alternativas[indiceMarcado]);
+                } else {
+                    respostas.push('?');
+                }
+            }
+            
+            while (respostas.length < numQuestoes) {
+                respostas.push('?');
+            }
+            
+            return respostas;
+        }
+
+        function calcularIntensidade(grayMat, centerX, centerY, radius) {
+            let totalIntensity = 0;
+            let pixelCount = 0;
+            const r = Math.floor(radius * 0.7);
+            
+            for (let y = -r; y <= r; y++) {
+                for (let x = -r; x <= r; x++) {
+                    if (x*x + y*y <= r*r) {
+                        const pixelX = Math.floor(centerX + x);
+                        const pixelY = Math.floor(centerY + y);
+                        
+                        if (pixelX >= 0 && pixelX < grayMat.cols && 
+                            pixelY >= 0 && pixelY < grayMat.rows) {
+                            totalIntensity += grayMat.ucharPtr(pixelY, pixelX)[0];
+                            pixelCount++;
+                        }
+                    }
+                }
+            }
+            
+            return pixelCount > 0 ? totalIntensity / pixelCount : 255;
+        }
+
+        function compararComGabarito(respostas, gabarito) {
+            const resultado = { respostas: [], acertos: 0, erros: 0, naoDetectados: 0, nota: 0 };
+
+            for (let i = 0; i < gabarito.length; i++) {
+                const resposta = respostas[i];
+                const correto = resposta === gabarito[i];
+                const naoDetectado = resposta === '?';
+                
+                resultado.respostas.push({
+                    questao: i + 1,
+                    resposta: resposta,
+                    gabarito: gabarito[i],
+                    correto: correto,
+                    naoDetectado: naoDetectado
+                });
+
+                if (naoDetectado) resultado.naoDetectados++;
+                else if (correto) resultado.acertos++;
+                else resultado.erros++;
+            }
+
+            resultado.nota = (resultado.acertos / gabarito.length * 10).toFixed(1);
+            return resultado;
+        }
+
+        function exibirResultados(resultado) {
+            document.getElementById('scoreCard').innerHTML = `
+                <h2>${resultado.nota}</h2>
+                <p>✓ ${resultado.acertos} | ✗ ${resultado.erros} | ? ${resultado.naoDetectados}</p>
+            `;
+
+            let html = '<h3>Resultado:</h3>';
+            resultado.respostas.forEach(r => {
+                let classe, status, statusClass;
+                if (r.naoDetectado) {
+                    classe = 'not-detected';
+                    status = '?';
+                    statusClass = 'not-detected';
+                } else if (r.correto) {
+                    classe = 'correct';
+                    status = '✓';
+                    statusClass = 'correct';
+                } else {
+                    classe = 'incorrect';
+                    status = '✗';
+                    statusClass = 'incorrect';
+                }
+
+                html += `
+                    <div class="question-item ${classe}">
+                        <div class="question-info">
+                            <strong>Q${r.questao}:</strong> ${r.resposta} | Gab: ${r.gabarito}
+                        </div>
+                        <div class="question-status ${statusClass}">${status}</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('questionResults').innerHTML = html;
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function desenharOverlay(circles, respostas) {
+            const ctx = overlayCanvas.getContext('2d');
+            ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+            const circlesData = [];
+            for (let i = 0; i < circles.cols; i++) {
+                circlesData.push({
+                    x: circles.data32F[i * 3],
+                    y: circles.data32F[i * 3 + 1],
+                    r: circles.data32F[i * 3 + 2]
+                });
+            }
+
+            circlesData.sort((a, b) => {
+                const yDiff = a.y - b.y;
+                if (Math.abs(yDiff) > 30) return yDiff;
+                return a.x - b.x;
+            });
+
+            const linhas = [];
+            let linhaAtual = [];
+            let yAnterior = -1;
+
+            circlesData.forEach(circle => {
+                if (yAnterior === -1 || Math.abs(circle.y - yAnterior) < 30) {
+                    linhaAtual.push(circle);
+                } else {
+                    if (linhaAtual.length > 0) linhas.push([...linhaAtual]);
+                    linhaAtual = [circle];
+                }
+                yAnterior = circle.y;
+            });
+            if (linhaAtual.length > 0) linhas.push(linhaAtual);
+
+            const alternativas = ['A', 'B', 'C', 'D'];
+            
+            linhas.forEach((linha, questaoIndex) => {
+                linha.forEach((circle, altIndex) => {
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.r, 0, 2 * Math.PI);
+                    
+                    const isMarked = respostas[questaoIndex] === alternativas[altIndex];
+                    
+                    if (isMarked) {
+                        ctx.strokeStyle = '#00ff00';
+                        ctx.lineWidth = 3;
+                        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+                        ctx.fill();
+                    } else {
+                        ctx.strokeStyle = '#00bfff';
+                        ctx.lineWidth = 2;
+                    }
+                    
+                    ctx.stroke();
+                    
+                    if (altIndex < 4) {
+                        ctx.fillStyle = isMarked ? '#00ff00' : '#00bfff';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(alternativas[altIndex], circle.x, circle.y);
+                    }
+                });
+            });
+        }
+
+        function mostrarStatus(mensagem, tipo) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = mensagem;
+            statusDiv.className = 'status ' + tipo;
+            statusDiv.style.display = 'block';
+
+            if (tipo === 'success') {
+                setTimeout(() => statusDiv.style.display = 'none', 3000);
+            }
+        }
+    </script>
+</body>
+</html>
